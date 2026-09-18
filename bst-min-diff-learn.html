@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimum Absolute Difference in a BST</title>
+<style>
+  :root{
+    --bg:#070a10; --panel:#0e131c; --line:rgba(255,255,255,.08);
+    --current:#4da6ff; --prev:#43d17a; --amber:#f2b544;
+    --ink:#e7ecf5; --ink-dim:#8a97ad; --code-bg:#0b0f17;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow-x:hidden;}
+  .wrap{max-width:960px;margin:0 auto;padding:22px 16px 60px;}
+  h1{font-size:20px;margin:0 0 6px;}
+  .lede{color:var(--ink-dim);font-size:14.5px;line-height:1.55;margin:0 0 22px;}
+  .lede b{color:var(--ink);font-weight:600;}
+  .lab{display:flex;flex-direction:column;gap:18px;background:var(--panel);
+    border:1px solid var(--line);border-radius:16px;padding:16px;}
+  @media(min-width:840px){ .lab{display:grid;grid-template-columns:1.05fr 1fr;gap:20px;} }
+  .tree-col, .code-col{display:flex;flex-direction:column;gap:12px;}
+  svg{width:100%;height:auto;display:block;}
+  .edge{stroke:#26303f;stroke-width:2.5;fill:none;}
+  .node-circle{stroke-width:2.5;transition:fill .5s,stroke .5s,filter .5s;
+    fill:#161c28;stroke:#334055;}
+  .node-circle.current{fill:#123350;stroke:var(--current);filter:drop-shadow(0 0 12px rgba(77,166,255,.55));}
+  .node-circle.prev{fill:#0f3324;stroke:var(--prev);filter:drop-shadow(0 0 12px rgba(67,209,122,.5));}
+  .node-value{fill:var(--ink);font-size:20px;font-weight:600;text-anchor:middle;dominant-baseline:central;}
+  .node-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-anchor:middle;opacity:0;transition:opacity .35s;}
+  .cursor-dot{fill:var(--amber);opacity:0;filter:drop-shadow(0 0 6px rgba(242,181,68,.8));}
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .badge{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;
+    padding:8px 6px;text-align:center;}
+  .badge .cap{font-size:10px;color:var(--ink-dim);letter-spacing:.04em;}
+  .badge .val{font-size:16px;font-weight:700;margin-top:2px;}
+  .badge.prevb .val{color:var(--prev);} .badge.curb .val{color:var(--current);} .badge.minb .val{color:var(--amber);}
+  .diffline{min-height:20px;font-size:14px;text-align:center;color:var(--ink);opacity:0;transition:opacity .3s;}
+  .stepbar{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-dim);}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;}
+  button{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);
+    padding:8px 12px;border-radius:9px;font-size:13px;cursor:pointer;}
+  button:hover:not(:disabled){background:rgba(255,255,255,.11);}
+  button:disabled{opacity:.35;cursor:default;}
+  .caption{font-size:13.5px;line-height:1.5;color:var(--ink);background:rgba(255,255,255,.03);
+    border-left:2px solid var(--amber);padding:9px 11px;border-radius:6px;min-height:56px;}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:12px;
+    padding:12px;font-size:12.3px;line-height:1.75;overflow-x:auto;margin:0;}
+  .cl{display:block;padding:1px 4px;border-radius:4px;transition:background .3s;}
+  .cl.hl{background:rgba(242,181,68,.16);}
+  .cmt{color:#6b7688;}
+  section.notes, section.complexity, section.chain{margin-top:22px;}
+  h2{font-size:15px;margin:0 0 8px;}
+  ul.q{margin:0;padding-left:18px;font-size:13.5px;line-height:1.7;color:var(--ink-dim);}
+  ul.q b{color:var(--ink);}
+  .chain{text-align:center;font-size:13.5px;color:var(--ink-dim);line-height:2;}
+  .chain b{color:var(--ink);}
+  .final{margin-top:10px;font-size:13.5px;color:var(--ink);text-align:center;}
+  .note-left{font-size:12px;color:var(--ink-dim);margin-top:26px;border-top:1px solid var(--line);padding-top:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Minimum Absolute Difference — BST</h1>
+  <p class="lede">We want the <b>two closest values</b> in the tree. A BST already keeps
+    <b>left &lt; node &lt; right</b>, so visiting left → root → right (inorder) reads the values out in
+    <b>sorted order</b>. Once values are sorted, the closest pair is always <b>next to each other</b> —
+    so we only ever need to compare <b>previous</b> with <b>current</b>, never the whole list.</p>
+
+  <div class="lab">
+    <div class="tree-col">
+      <svg id="stage" viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg">
+        <path class="edge" d="M200,50 L110,140"></path>
+        <path class="edge" d="M200,50 L290,140"></path>
+        <path class="edge" d="M110,170 L150,250"></path>
+        <g id="node-10" transform="translate(200,50)"><circle class="node-circle" r="28"></circle>
+          <text class="node-value">10</text><text class="node-label" y="-38"></text></g>
+        <g id="node-5" transform="translate(110,150)"><circle class="node-circle" r="28"></circle>
+          <text class="node-value">5</text><text class="node-label" y="-38"></text></g>
+        <g id="node-15" transform="translate(290,150)"><circle class="node-circle" r="28"></circle>
+          <text class="node-value">15</text><text class="node-label" y="-38"></text></g>
+        <g id="node-7" transform="translate(150,250)"><circle class="node-circle" r="28"></circle>
+          <text class="node-value">7</text><text class="node-label" y="38"></text></g>
+        <circle id="cursor" class="cursor-dot" r="6" cx="0" cy="0"></circle>
+      </svg>
+      <div class="diffline" id="diffLine"></div>
+      <div class="badges">
+        <div class="badge prevb"><div class="cap">PREV</div><div class="val" id="prevVal">–</div></div>
+        <div class="badge curb"><div class="cap">CURRENT</div><div class="val" id="curVal">–</div></div>
+        <div class="badge"><div class="cap">hasPrev</div><div class="val" id="hasPrevVal">false</div></div>
+        <div class="badge minb"><div class="cap">minDiff</div><div class="val" id="minVal">∞</div></div>
+      </div>
+      <div class="stepbar"><span id="stepLabel">Step 1 / 6</span></div>
+      <div class="controls">
+        <button id="prevBtn">◀ Previous</button>
+        <button id="nextBtn">Next ▶</button>
+        <button id="playBtn">▶ Auto Play</button>
+        <button id="pauseBtn">⏸ Pause</button>
+        <button id="replayBtn">↻ Replay</button>
+      </div>
+      <div class="caption" id="caption"></div>
+    </div>
+
+    <div class="code-col">
+      <pre><span class="cl">void inorder(Node* root, int&amp; prev, bool&amp; hasPrev, int&amp; minDiff) {</span><span class="cl">  if (!root) return;</span><span class="cl" id="lineLeft">  inorder(root->left, prev, hasPrev, minDiff);  <span class="cmt">// go left first</span></span><span class="cl" id="lineCompare">  if (hasPrev) minDiff = min(minDiff, root->data - prev); <span class="cmt">// compare</span></span><span class="cl" id="lineAssign">  prev = root->data; hasPrev = true;  <span class="cmt">// current -> previous</span></span><span class="cl" id="lineRight">  inorder(root->right, prev, hasPrev, minDiff); <span class="cmt">// continue</span></span><span class="cl">}</span></pre>
+    </div>
+  </div>
+
+  <section class="notes">
+    <h2>Beginner doubts, answered</h2>
+    <ul class="q">
+      <li><b>Why inorder?</b> BST order (left &lt; node &lt; right) means left→root→right always reads values ascending.</li>
+      <li><b>Why only adjacent pairs?</b> In sorted order, any non-adjacent pair has a value sitting between them — that value would give a smaller difference. So the true minimum is always between neighbors.</li>
+      <li><b>Why no array?</b> After a comparison, the array's older values are never needed again — only the just-visited value matters for the next comparison.</li>
+      <li><b>Why no <code>abs()</code>?</b> Inorder values only increase, so <code>current − previous</code> is never negative.</li>
+      <li><b>Why skip the first node's comparison?</b> There's no previous value yet — that's exactly what <code>hasPrev</code> tracks.</li>
+      <li><b>Is "previous" the parent?</b> No — it's the previous <i>inorder</i> value. For 10, previous is 7 (the last node visited), not 5 (its parent).</li>
+    </ul>
+  </section>
+
+  <section class="complexity">
+    <h2>Complexity</h2>
+    <ul class="q">
+      <li><b>Time — O(n):</b> every node is visited exactly once.</li>
+      <li><b>Space — O(h):</b> only the recursion stack plus three constants (<code>prev</code>, <code>hasPrev</code>, <code>minDiff</code>) — no array. O(log n) if balanced, O(n) if skewed.</li>
+      <li>A vector-based solution stores all n values first — O(n) extra space. This one never stores more than one value.</li>
+    </ul>
+  </section>
+
+  <section class="chain">
+    <div><b>BST</b> → <b>inorder</b> → <b>sorted</b> → <b>adjacent</b> → <b>previous + current</b> → <b>difference</b> → <b>minimum</b> → <b>current → previous</b> → <b>repeat</b></div>
+    <div class="final">Nothing to memorize. Understand why one step leads to the next, and you can rebuild the code.</div>
+  </section>
+
+  <div class="note-left">Kept this build focused on the core teaching tool — the synchronized dry-run above. Left out for length: the hide-the-code "reconstruct it yourself" quiz and the second-tree (20/10/30/15) confidence test. Say the word and I'll add either.</div>
+</div>
+
+<script>
+const NODE_POS = {10:{x:200,y:50},5:{x:110,y:150},15:{x:290,y:150},7:{x:150,y:250}};
+const cursor = document.getElementById('cursor');
+const prevVal=document.getElementById('prevVal'), curVal=document.getElementById('curVal');
+const hasPrevVal=document.getElementById('hasPrevVal'), minVal=document.getElementById('minVal');
+const diffLine=document.getElementById('diffLine'), caption=document.getElementById('caption');
+const stepLabel=document.getElementById('stepLabel');
+const prevBtn=document.getElementById('prevBtn'), nextBtn=document.getElementById('nextBtn');
+const playBtn=document.getElementById('playBtn'), pauseBtn=document.getElementById('pauseBtn'), replayBtn=document.getElementById('replayBtn');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const steps = [
+  {current:5, prev:null, hasPrev:false, diff:null, min:'∞', hl:['lineLeft'],
+   caption:"Recursion dives all the way left — 5 has no left child, so it's visited first. No previous value exists yet, so there's nothing to compare."},
+  {current:7, prev:5, hasPrev:true, diff:'|7 − 5| = 2', min:'2', hl:['lineCompare'], cursor:[5,7],
+   caption:'A previous value exists now (5). Compare current − previous and keep the smaller of minDiff and this result: ∞ → 2.'},
+  {current:null, prev:7, hasPrev:true, diff:null, min:'2', hl:['lineAssign'], slow:true,
+   caption:'Current becomes previous. This one assignment is the only state carried into the next call.'},
+  {current:10, prev:7, hasPrev:true, diff:'|10 − 7| = 3', min:'2', hl:['lineRight','lineCompare'], cursor:[7,5,10],
+   caption:"Continuing right brings us back up to 10. 3 is bigger than 2, so minDiff stays 2 — it only ever remembers the smallest gap seen so far."},
+  {current:null, prev:10, hasPrev:true, diff:null, min:'2', hl:['lineAssign'], slow:true,
+   caption:'10 becomes the new previous.'},
+  {current:15, prev:10, hasPrev:true, diff:'|15 − 10| = 5', min:'2', hl:['lineRight','lineCompare'], cursor:[10,15],
+   caption:'Last node — every value has now been visited once. 5 is still bigger than 2, so the answer is Minimum Difference = 2.'}
+];
+
+let idx = 0, timer = null;
+
+function setNodeState(id, state, slow){
+  const g = document.getElementById('node-'+id);
+  const circle = g.querySelector('.node-circle'), label = g.querySelector('.node-label');
+  circle.style.transitionDuration = slow ? '650ms' : '400ms';
+  circle.classList.remove('current','prev');
+  if(state) circle.classList.add(state);
+  label.style.opacity = 0;
+  setTimeout(()=>{
+    label.textContent = state==='current' ? 'CURRENT' : state==='prev' ? 'PREV' : '';
+    label.setAttribute('fill', state==='current' ? 'var(--current)' : state==='prev' ? 'var(--prev)' : '#888');
+    label.style.opacity = state ? 1 : 0;
+  }, slow ? 300 : 150);
+}
+
+function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+function moveCursorAlong(ids, duration){
+  const pts = ids.map(id => NODE_POS[id]);
+  cursor.style.opacity = 1;
+  cursor.setAttribute('cx', pts[0].x); cursor.setAttribute('cy', pts[0].y);
+  const segLens=[]; let total=0;
+  for(let i=0;i<pts.length-1;i++){ const l=dist(pts[i],pts[i+1]); segLens.push(l); total+=l; }
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1,(now-start)/duration);
+    const target = t*total; let acc=0, i=0;
+    for(; i<segLens.length; i++){ if(acc+segLens[i]>=target) break; acc+=segLens[i]; }
+    i = Math.min(i, segLens.length-1);
+    const segT = segLens[i] ? (target-acc)/segLens[i] : 1;
+    const p0=pts[i], p1=pts[i+1];
+    cursor.setAttribute('cx', p0.x+(p1.x-p0.x)*segT);
+    cursor.setAttribute('cy', p0.y+(p1.y-p0.y)*segT);
+    if(t<1) requestAnimationFrame(step); else cursor.style.opacity = 0;
+  }
+  requestAnimationFrame(step);
+}
+
+function render(i){
+  const s = steps[i];
+  [5,7,10,15].forEach(id => setNodeState(id, null));
+  if(s.prev) setNodeState(s.prev, 'prev', s.slow);
+  if(s.current) setNodeState(s.current, 'current');
+  prevVal.textContent = s.prev ?? '–';
+  curVal.textContent = s.current ?? '–';
+  hasPrevVal.textContent = s.hasPrev ? 'true' : 'false';
+  minVal.textContent = s.min;
+  diffLine.textContent = s.diff || '';
+  diffLine.style.opacity = s.diff ? 1 : 0;
+  document.querySelectorAll('.cl.hl').forEach(el => el.classList.remove('hl'));
+  s.hl.forEach(id => document.getElementById(id).classList.add('hl'));
+  caption.textContent = s.caption;
+  stepLabel.textContent = `Step ${i+1} / ${steps.length}`;
+  prevBtn.disabled = i===0; nextBtn.disabled = i===steps.length-1;
+  if(s.cursor && !reduceMotion) moveCursorAlong(s.cursor, 700);
+}
+
+function stopAuto(){ if(timer){ clearInterval(timer); timer=null; } }
+function goto(i){ idx = Math.max(0, Math.min(steps.length-1, i)); render(idx); }
+
+prevBtn.addEventListener('click', () => { stopAuto(); goto(idx-1); });
+nextBtn.addEventListener('click', () => { stopAuto(); goto(idx+1); });
+replayBtn.addEventListener('click', () => { stopAuto(); goto(0); });
+playBtn.addEventListener('click', () => {
+  if(timer) return;
+  timer = setInterval(() => { idx = idx < steps.length-1 ? idx+1 : 0; render(idx); }, 1700);
+});
+pauseBtn.addEventListener('click', stopAuto);
+
+render(0);
+</script>
+</body>
+</html>
